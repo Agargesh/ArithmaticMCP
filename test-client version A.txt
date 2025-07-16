@@ -1,0 +1,42 @@
+test-client version A
+
+import requests
+import sseclient
+
+# Step 1: connect to the event stream
+headers = {
+    "Accept": "text/event-stream",
+    "Content-Type": "application/json"
+}
+
+# Connect to the SSE stream
+print("🔌 Connecting to stream...")
+stream_response = requests.get("http://localhost:8000/sse/", headers=headers, stream=True)
+client = sseclient.SSEClient(stream_response.raw)
+
+# Step 2: wait for endpoint message
+message_endpoint = None
+for event in client.events():
+    if event.event == "endpoint":
+        message_endpoint = event.data
+        print(f"Message endpoint: {message_endpoint}")
+        break
+
+# Step 3: send tool call
+if message_endpoint:
+    payload = {
+        "method": "calculate",
+        "params": {
+            "expression": "2 + 3 * 4"
+        }
+    }
+    requests.post("http://localhost:8000" + message_endpoint, json=payload)
+
+    # Step 4: wait for tool_result
+    for event in client.events():
+        print(f"\n EVENT TYPE: {event.event}")
+        print(f" DATA: {event.data}")
+        if event.event == "tool_result":
+            break
+else:
+    print("Failed to get message endpoint from server.")

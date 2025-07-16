@@ -1,0 +1,67 @@
+import sseclient
+import requests
+import json
+import time
+
+# Configuration for SSE and other requests
+SSE_URL = 'http://localhost:5000/events'  # Replace with your SSE endpoint
+API_URL = 'http://localhost:5000/api'    # Replace with your API endpoint
+
+def start_sse_client():
+    """Starts an SSE client to listen for events."""
+    print(f"Connecting to SSE stream at {SSE_URL}...")
+    try:
+        # Use requests to get a streaming response for SSE
+        response = requests.get(SSE_URL, stream=True, headers={'Accept': 'text/event-stream'})
+        client = sseclient.SSEClient(response)
+
+        for event in client.events():
+            if event.data:
+                try:
+                    data = json.loads(event.data)
+                    print(f"Received SSE event: {data}")
+                except json.JSONDecodeError:
+                    print(f"Received raw SSE data: {event.data}")
+            else:
+                print("Received empty SSE event.")
+    except requests.exceptions.ConnectionError as e:
+        print(f"SSE connection error: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred in SSE client: {e}")
+
+def make_get_request(endpoint):
+    """Makes a GET request to a specified API endpoint."""
+    url = f"{API_URL}/{endpoint}"
+    print(f"Making GET request to {url}...")
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        print(f"GET response from {endpoint}: {response.json()}")
+    except requests.exceptions.RequestException as e:
+        print(f"GET request error to {endpoint}: {e}")
+
+def make_post_request(endpoint, payload):
+    """Makes a POST request to a specified API endpoint with a payload."""
+    url = f"{API_URL}/{endpoint}"
+    print(f"Making POST request to {url} with payload: {payload}...")
+    try:
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        print(f"POST response from {endpoint}: {response.json()}")
+    except requests.exceptions.RequestException as e:
+        print(f"POST request error to {endpoint}: {e}")
+
+if __name__ == "__main__":
+    # Start SSE client in a separate thread/process if you want it to run concurrently
+    # For simplicity, this example runs them sequentially or requires manual concurrency
+    # (e.g., using threading.Thread or asyncio)
+
+    # Example of making multiple requests
+    make_get_request("status")
+    time.sleep(1)
+
+    make_post_request("data", {"message": "Hello from client!"})
+    time.sleep(1)
+
+    # Start the SSE client to listen for events
+    start_sse_client()

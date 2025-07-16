@@ -1,0 +1,8 @@
+{
+  "method": "calculate",
+  "params": {
+    "expression": "2 + 3 * 4"
+  }
+}
+
+
